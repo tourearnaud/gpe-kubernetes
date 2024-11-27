@@ -1,0 +1,50 @@
+# Ignorer les fichiers générés par .NET
+**/bin/
+**/obj/
+**/out/
+*.exe
+*.dll
+*.pdb
+
+# Ignorer les fichiers de configuration utilisateur de Visual Studio
+*.user
+*.suo
+.vs/
+
+# Ignorer les fichiers de logs
+**/logs/
+*.log
+
+# Ignorer les fichiers de build de React
+front/build/
+
+# Ignorer les dépendances Node.js
+front/node_modules/
+
+# Ignorer les fichiers de configuration locaux (IDE, outils)
+*.DS_Store
+.vscode/
+.idea/
+*.env
+
+# Ignorer les fichiers de test coverage (si utilisés)
+coverage/
+.nyc_output/
+
+# Ignorer les fichiers spécifiques à Git
+*.lock
+
+# Ignorer les fichiers d'uploads (images)
+API/API/Uploads/
+API/Uploads/
+
+# Ignorer les fichiers temporaires ou spécifiques
+API/.mono/
+API/Properties/launchSettings.json
+*.lock
+*.log
+
+# Ignorer les dossiers générés
+**/bin/
+**/obj/
+**/out/
