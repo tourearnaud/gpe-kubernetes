@@ -9,11 +9,61 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Ajout du service DbContext
-builder.Services.AddDbContext<APIDbContext>();
+// Charger les variables d'environnement
+Env.Load();
+
+// Récupérer les variables d'environnement
+var apiUrl = Environment.GetEnvironmentVariable("API_URL");
+var dbServer = Environment.GetEnvironmentVariable("DB_SERVER");
+var dbDatabase = Environment.GetEnvironmentVariable("DB_DATABASE");
+var dbUser = Environment.GetEnvironmentVariable("DB_USER");
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+// Vérification des variables importantes
+if (string.IsNullOrEmpty(apiUrl) || string.IsNullOrEmpty(dbServer) || 
+    string.IsNullOrEmpty(dbDatabase) || string.IsNullOrEmpty(dbUser) || 
+    string.IsNullOrEmpty(dbPassword))
+{
+    throw new Exception("Une ou plusieurs variables d'environnement nécessaires ne sont pas définies.");
+}
+
+Console.WriteLine($"API URL: {apiUrl}");
+
+// Lire la configuration pour activer ou désactiver HTTPS
+var httpsSettings = builder.Configuration.GetSection("HttpsSettings");
+bool useHttps = httpsSettings.GetValue<bool>("UseHttps");
+int httpPort = httpsSettings.GetValue<int>("HttpPort");
+int httpsPort = httpsSettings.GetValue<int>("HttpsPort");
+
+// Configurer Kestrel pour HTTP/HTTPS selon la configuration
+builder.WebHost.ConfigureKestrel(options =>
+{
+    if (useHttps)
+    {
+        options.ListenLocalhost(httpsPort, listenOptions =>
+        {
+            listenOptions.UseHttps(builder.Configuration["Kestrel:Endpoints:Https:Certificate:Path"],
+                                   builder.Configuration["Kestrel:Endpoints:Https:Certificate:Password"]);
+        });
+        Console.WriteLine($"✔️ HTTPS activé sur le port {httpsPort}");
+    }
+    else
+    {
+        options.ListenLocalhost(httpPort);
+        Console.WriteLine($"⚠️ HTTPS désactivé. HTTP activé sur le port {httpPort}");
+    }
+});
+
+// Ajouter le service DbContext avec la configuration des variables d'environnement
+builder.Services.AddDbContext<APIDbContext>(options =>
+{
+    var connectionString = $"server={dbServer};database={dbDatabase};user={dbUser};password={dbPassword}";
+    options.UseMySQL(connectionString);
+});
 
 // Ajout des services pour l'injection de dépendances
 builder.Services.AddTransient<IFileService, FileService>();
@@ -98,7 +148,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins("http://localhost:3000", $"http://localhost:{httpPort}")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -123,7 +173,6 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 // Nouveau middleware pour les photos de profil
-// Nouveau middleware pour les photos de profil
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
@@ -137,10 +186,13 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowFrontend");
 
+if (useHttps)
+{
+    app.UseHttpsRedirection(); // Redirection vers HTTPS si activé
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 app.MapHub<ChatHub>("/chatHub");
-
 app.Run();

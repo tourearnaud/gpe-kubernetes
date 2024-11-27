@@ -39,7 +39,7 @@ export default function ChatView() {
     }
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:8090/chatHub', {
+    .withUrl(`${process.env.REACT_APP_API_URL}/chatHub`,{
         accessTokenFactory: () => localStorage.getItem('token'),
       })
       .withAutomaticReconnect()

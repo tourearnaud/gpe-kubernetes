@@ -23,11 +23,11 @@ const SomeComponent = () => {
 
   return (
     <img
-      src={
-        user?.ImageName
-          ? `http://localhost:8090/uploads/Profiles/${user.ImageName}`
-          : 'http://localhost:8090/uploads/Profiles/default-avatar.png'
-      }
+    src={
+      user?.ImageName
+        ? `${process.env.REACT_APP_API_URL}/uploads/Profiles/${user.ImageName}`
+        : `${process.env.REACT_APP_API_URL}/uploads/Profiles/default-avatar.png`
+    }    
       alt="Profile"
     />
   );

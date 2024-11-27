@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
     id: '8864c717-587d-472a-929a-8e5f298024da-0',
     username: 'Jaydon Frankie',
     email: 'demo@gpe.cc',
-    avatar: `http://localhost:8090/uploads/Profiles/default-avatar.png`, // Avatar par défaut
+    avatar: `${process.env.REACT_APP_API_URL}/uploads/Profiles/default-avatar.png`,
     role: 'admin',
   });
 
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   const updateAvatar = (newAvatar) => {
     setUser((prev) => ({
       ...prev,
-      avatar: `http://localhost:8090/uploads/Profiles/${newAvatar}`, // Met à jour avec le chemin complet
+      avatar: `${process.env.REACT_APP_API_URL}/uploads/Profiles/${newAvatar}`,
     }));
   };
 

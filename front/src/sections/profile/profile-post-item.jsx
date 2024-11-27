@@ -11,6 +11,12 @@ import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import InputBase from '@mui/material/InputBase';
 import InputAdornment from '@mui/material/InputAdornment';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Button from '@mui/material/Button';
 import Iconify from 'src/components/iconify';
 import Image from 'src/components/image';
 import { useSnackbar } from 'src/components/snackbar';
@@ -23,68 +29,63 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
   const [message, setMessage] = useState('');
   const [comments, setComments] = useState([]);
   const [commentCount, setCommentCount] = useState(0);
+  const [openDialog, setOpenDialog] = useState(false); // État pour le pop-up de confirmation
   const { enqueueSnackbar } = useSnackbar();
 
-
-  // Fonction pour charger les commentaires depuis l'API
+  // Charger les commentaires depuis l'API
   const fetchComments = useCallback(async () => {
     if (!post?.id) {
-      console.warn("Article ID manquant. Requête ignorée.");
+      console.warn('Article ID manquant. Requête ignorée.');
       return;
     }
-  
+
     try {
       const response = await axios.get(`/api/commentaires/article/${post.id}`);
-      setComments(response.data); // Même si la liste est vide, elle sera gérée
+      setComments(response.data);
       setCommentCount(response.data.length);
     } catch (error) {
-      console.error("Erreur lors du chargement des commentaires :", error);
-      setComments([]); // Réinitialiser les commentaires
-      setCommentCount(0); // Mettre le compteur à zéro
+      console.error('Erreur lors du chargement des commentaires :', error);
+      setComments([]);
+      setCommentCount(0);
     }
   }, [post]);
-  
-  
 
-  // Charger les commentaires depuis l'API au montage du composant
   useEffect(() => {
     if (!post || !post.id) {
       console.warn("Aucun article valide détecté. Vérifiez les données de l'article.");
       return;
     }
-  
     fetchComments();
   }, [fetchComments, post]);
-  
-  // Fonction pour gérer la suppression d'un article
+
+  // Supprimer un article
   const handleDeletePost = async () => {
     try {
-      const response = await axios.delete(`/api/articles/${post.id}`);
-      console.log('Delete response:', response);
+      const response = await axios.delete(`/articles/${post.id}`);
       if (response.status === 200) {
         enqueueSnackbar('Article supprimé avec succès.', { variant: 'success' });
-        console.log('Article deleted successfully. Notifying parent...');
-        if (onPostDeleted) onPostDeleted(post.id);
+        if (onPostDeleted) onPostDeleted(post.id); // Mettre à jour la liste des articles dans le composant parent
+        setOpenDialog(false); // Fermer le pop-up après la suppression
       } else {
-        console.warn('Unexpected response status:', response.status);
+        enqueueSnackbar('Erreur lors de la suppression.', { variant: 'warning' });
       }
     } catch (error) {
-      console.error('Erreur lors de la suppression de l\'article :', error);
-      enqueueSnackbar('Impossible de supprimer cet article.', { variant: 'error' });
+      console.error('Erreur lors de la suppression de l\'article :', error.response || error);
+      enqueueSnackbar(
+        error.response?.data?.message || 'Impossible de supprimer cet article.',
+        { variant: 'error' }
+      );
     }
   };
 
-  // Gestion de la modification du contenu du commentaire
-  const handleChangeMessage = useCallback((event) => {
-    setMessage(event.target.value);
-    console.log('Message updated:', event.target.value);
-  }, []);
+  // Gérer l'ouverture et la fermeture du pop-up
+  const handleOpenDialog = () => setOpenDialog(true);
+  const handleCloseDialog = () => setOpenDialog(false);
 
-  // Fonction pour ajouter un commentaire
+  // Ajouter un commentaire
   const handleAddComment = async () => {
     if (!message.trim()) {
       enqueueSnackbar('Veuillez entrer un commentaire !', { variant: 'warning' });
-      console.warn('Empty comment submitted.');
       return;
     }
 
@@ -96,31 +97,21 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
       Timestamp: new Date().toISOString(),
     };
 
-    console.log('Adding new comment:', newComment);
-
     try {
-      const addComment = await axios.post(`/api/commentaires`, newComment);
-      console.log('Add comment response:', addComment);
-      if (addComment && addComment.status === 200) {
-        enqueueSnackbar('Le commentaire a été ajouté !', { variant: 'success' });
-        setMessage('');
-        fetchComments();
-      } else {
-        console.warn('Unexpected response status while adding comment:', addComment.status);
-        enqueueSnackbar("Impossible d'ajouter un commentaire !", { variant: 'error' });
+      const response = await axios.post('/api/commentaires', newComment);
+      if (response.status === 200) {
+        enqueueSnackbar('Commentaire ajouté avec succès.', { variant: 'success' });
+        setMessage(''); // Réinitialiser la zone de texte
+        fetchComments(); // Recharger les commentaires
       }
     } catch (error) {
-      console.error("Erreur lors de l'ajout du commentaire :", error);
-      enqueueSnackbar("Impossible d'ajouter un commentaire !", { variant: 'error' });
+      console.error('Erreur lors de l\'ajout du commentaire :', error);
+      enqueueSnackbar('Impossible d\'ajouter le commentaire.', { variant: 'error' });
     }
   };
 
-  // Fonction pour mettre le focus sur le champ de commentaire
-  const handleClickComment = useCallback(() => {
-    if (commentRef.current) {
-      commentRef.current.focus();
-      console.log('Comment input focused.');
-    }
+  const handleChangeMessage = useCallback((event) => {
+    setMessage(event.target.value);
   }, []);
 
   const renderHead = (
@@ -138,7 +129,7 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
       }
       subheader={<Box sx={{ color: 'text.disabled', typography: 'caption', mt: 0.5 }}>12/03/2024</Box>}
       action={
-        <IconButton onClick={handleDeletePost}>
+        <IconButton onClick={handleOpenDialog}>
           <Iconify icon="solar:trash-bin-trash-bold" />
         </IconButton>
       }
@@ -154,13 +145,13 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
       }}
     >
       <Box sx={{ flexGrow: 1 }} />
-      <IconButton onClick={handleClickComment}>
+      <IconButton>
         <Iconify icon="solar:chat-round-dots-bold" />
       </IconButton>
     </Stack>
   );
 
-  const renderCommentList = (
+  const renderComments = (
     <Stack spacing={1.5} sx={{ px: 3, pb: 2 }}>
       {comments.length > 0 ? (
         comments.map((comment, index) => (
@@ -183,8 +174,6 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
       )}
     </Stack>
   );
- 
-  
 
   const renderInput = (
     <Stack
@@ -206,7 +195,7 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
         endAdornment={
           <InputAdornment position="end" sx={{ mr: 1 }}>
             <IconButton size="small" onClick={handleAddComment}>
-              <Iconify icon="uil:message" color="red" />
+              <Iconify icon="uil:message" />
             </IconButton>
           </InputAdornment>
         }
@@ -221,44 +210,49 @@ export default function ProfilePostItem({ post, onPostDeleted }) {
   );
 
   return (
-    <Card>
-      {renderHead}
-      <Typography
-        variant="body2"
-        sx={{
-          p: (theme) => theme.spacing(3, 3, 2, 3),
-          fontSize: (theme) => theme.spacing(3),
-        }}
-      >
-        {post.titre}
-      </Typography>
-      <Typography variant="body2" sx={{ p: (theme) => theme.spacing(0) }}>
-        {post.message}
-      </Typography>
-      <Box sx={{ p: 1 }}>
-        <Typography variant="body2" sx={{ p: (theme) => theme.spacing(0, 3, 2, 3) }}>
-          {`Contenu : ${post.contenue}`}
+    <>
+      <Card>
+        {renderHead}
+        <Typography variant="body2" sx={{ p: (theme) => theme.spacing(3, 3, 2, 3) }}>
+          {post.titre}
         </Typography>
-        <Typography variant="body2" sx={{ p: (theme) => theme.spacing(0, 3, 0, 3), opacity: 0.7 }}>
-          {`Adresse : ${post.adresses}`}
-        </Typography>
-        <Typography variant="body2" sx={{ p: (theme) => theme.spacing(0, 3, 2, 3), opacity: 0.7 }}>
-          {`Code postal : ${post.codepostal}`}
-        </Typography>
-        <Image
-          alt={post.imageName}
-          src={`http://localhost:8090/resources/${post.imageName}`}
-          ratio="16/9"
-          sx={{ borderRadius: 1.5 }}
-        />
-        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-          {`${commentCount} Commentaire${commentCount > 1 ? 's' : ''}`}
-        </Typography>
-      </Box>
-      {renderActions}
-      {renderCommentList}
-      {renderInput}
-    </Card>
+        <Box sx={{ p: 1 }}>
+          <Typography variant="body2" sx={{ p: (theme) => theme.spacing(0, 3, 2, 3) }}>
+            {`Contenu : ${post.contenue}`}
+          </Typography>
+          <Image
+            alt={post.imageName}
+            src={`${process.env.REACT_APP_API_URL}/resources/${post.imageName}`}
+            ratio="16/9"
+            sx={{ borderRadius: 1.5 }}
+          />
+          <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+            {`${commentCount} Commentaire${commentCount > 1 ? 's' : ''}`}
+          </Typography>
+        </Box>
+        {renderComments}
+        {renderInput}
+        {renderActions}
+      </Card>
+
+      {/* Boîte de dialogue de confirmation */}
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Confirmer la suppression</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Voulez-vous vraiment supprimer l&apos;article : <strong>{post.titre}</strong> ?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="inherit">
+            Annuler
+          </Button>
+          <Button onClick={handleDeletePost} color="error" autoFocus>
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 

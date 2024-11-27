@@ -92,6 +92,10 @@ namespace quest_web.Models
             return Password;
         }
 
+        public string? ResetPasswordToken { get; set; } // Stocke le token de réinitialisation
+        public DateTime? ResetPasswordTokenExpiry { get; set; } // Stocke la date d'expiration du token
+
+
         /// <summary>
         /// Compare l'objet User courant avec un autre en se basant sur le mot de passe.
         /// </summary>

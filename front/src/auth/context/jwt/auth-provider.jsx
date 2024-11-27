@@ -70,8 +70,9 @@ export function AuthProvider({ children }) {
               ...user,
               token,
               avatar: user.imageName
-                ? `http://localhost:8090/uploads/Profiles/${user.imageName}`
-                : `http://localhost:8090/uploads/Profiles/default-avatar.png`,
+                ? `${process.env.REACT_APP_API_URL}/uploads/Profiles/${user.imageName}`
+                : `${process.env.REACT_APP_API_URL}/uploads/Profiles/default-avatar.png`,
+
             },
           },
         });

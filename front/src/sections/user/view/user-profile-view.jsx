@@ -36,7 +36,7 @@ export default function UserProfileView() {
       const response = await axios.put(endpoints.user.updateUser(user.id), formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const newAvatarUrl = `http://localhost:8090/uploads/Profiles/${response.data.imageName}`;
+      const newAvatarUrl = `${process.env.REACT_APP_API_URL}/uploads/Profiles/${response.data.imageName}`;
       updateAvatar(newAvatarUrl); // Met à jour l'avatar dans le contexte
     } catch (error) {
       console.error(error);

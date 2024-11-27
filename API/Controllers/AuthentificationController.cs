@@ -149,5 +149,65 @@ namespace quest_web.Controllers
             // Retourne les informations de l'utilisateur.
             return Ok(current_user);
         }
+
+        private async Task SendResetEmail(string email, string resetLink)
+        {
+            try
+            {
+                using (var smtp = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587))
+                {
+                    smtp.Credentials = new System.Net.NetworkCredential("your-email@gmail.com", "your-password");
+                    smtp.EnableSsl = true;
+
+                    var message = new System.Net.Mail.MailMessage
+                    {
+                        From = new System.Net.Mail.MailAddress("your-email@gmail.com"),
+                        Subject = "Réinitialisation de votre mot de passe",
+                        Body = $"Bonjour,<br/><br/>Cliquez sur le lien suivant pour réinitialiser votre mot de passe : <a href='{resetLink}'>Réinitialiser le mot de passe</a>.<br/><br/>Ce lien expirera dans 1 heure.",
+                        IsBodyHtml = true
+                    };
+
+                    message.To.Add(email);
+                    await smtp.SendMailAsync(message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'envoi de l'email : {ex.Message}");
+                throw new Exception("Erreur lors de l'envoi de l'email.");
+            }
+        }
+
+        [Route("/forgot-password")]
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword([FromBody] string email)
+        {
+            // Vérifie si l'utilisateur existe avec l'email fourni
+            var user = await context.User.SingleOrDefaultAsync(u => u.email == email);
+            if (user == null)
+            {
+                return StatusCode(404, "Utilisateur introuvable.");
+            }
+
+            // Génère un token unique et définit sa validité
+            var token = Guid.NewGuid().ToString();
+            user.ResetPasswordToken = token;
+            user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(1);
+
+            // Enregistre les modifications
+            context.User.Update(user);
+            await context.SaveChangesAsync();
+
+           // Récupère l'URL de base depuis les variables d'environnement
+            var apiUrl = Environment.GetEnvironmentVariable("API_URL");
+            var resetLink = $"{apiUrl}/reset-password?token={token}";
+
+            // Envoie l'email
+            await SendResetEmail(user.email, resetLink);
+
+            return Ok("Un email de réinitialisation a été envoyé.");
+        }
+
+
     }
 }

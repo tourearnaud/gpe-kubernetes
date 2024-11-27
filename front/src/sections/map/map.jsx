@@ -18,7 +18,7 @@ export default function Map() {
 
   // Fonction pour récupérer les coordonnées des articles depuis le serveur
   const getLngLat = async () => {
-    await axios.get('http://localhost:8090/articles')
+    await axios.get(`${process.env.REACT_APP_API_URL}/articles`)
       .then((result) => {
         setLatLng(result.data); // Mise à jour de l'état avec les données récupérées
       })

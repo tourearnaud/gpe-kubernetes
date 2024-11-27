@@ -50,8 +50,9 @@ const LieuProfileView = () => {
             codepostal={post?.codepostal?.toString() || ''}
             name={user?.username || 'Utilisateur'} // Nom de l'utilisateur
             userid={user?.id?.toString() || ''}
-            avatarUrl={user?.avatar || 'http://localhost:8090/uploads/Profiles/default-avatar.png'}
-            coverUrl={`http://localhost:8090/resources/${post.imageName}`}
+            avatarUrl={user?.avatar || `${process.env.REACT_APP_API_URL}/uploads/Profiles/default-avatar.png`}
+            coverUrl={`${process.env.REACT_APP_API_URL}/resources/${post.imageName}`}
+
           />
         ))}
       </Card>

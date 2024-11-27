@@ -197,7 +197,7 @@ export default function ProfilePostItem({ post }) {
         </Typography>
         <Image
           alt={post.imageName}
-          src={`http://localhost:8090/resources/${post.imageName}`}
+          src={`${process.env.REACT_APP_API_URL}/resources/${post.imageName}`}
           ratio="16/9"
           sx={{ borderRadius: 1.5 }}
         />

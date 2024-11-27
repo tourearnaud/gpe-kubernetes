@@ -73,7 +73,7 @@ export default function ArticleItems({ onView, onEdit, onDelete, article }) {
         {renderRating}
         <Image
           alt={article.imageFile}
-          src={`http://localhost:8090/resources/${article.imageName}`}
+          src={`${process.env.REACT_APP_API_URL}/resources/${article.imageName}`}
           sx={{ borderRadius: 1, height: 164, width: 1 }}
         />
       </Stack>

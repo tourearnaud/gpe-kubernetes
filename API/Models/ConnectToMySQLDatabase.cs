@@ -55,11 +55,21 @@ namespace quest_web.Models
         /// <param name="optionsBuilder">Le générateur d'options pour configurer le contexte.</param>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured) // Vérifie si le contexte est déjà configuré (utile pour les tests en mémoire)
+            if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseMySQL("server=127.0.0.1;database=GPE;user=toure;password=root");
-                optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking); // Désactive le suivi des modifications pour optimiser les performances.
+                // Récupère les variables d'environnement
+                var server = Environment.GetEnvironmentVariable("DB_SERVER");
+                var database = Environment.GetEnvironmentVariable("DB_DATABASE");
+                var user = Environment.GetEnvironmentVariable("DB_USER");
+                var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+                // Construit la chaîne de connexion
+                var connectionString = $"server={server};database={database};user={user};password={password}";
+
+                // Configure la base de données
+                optionsBuilder.UseMySQL(connectionString);
             }
         }
+
     }
 }

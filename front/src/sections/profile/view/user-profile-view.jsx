@@ -40,7 +40,7 @@ export default function UserProfileView() {
   const [currentTab, setCurrentTab] = useState('post');
 
   // Prévisualisation initiale avec l'image du contexte global
-  const [preview, setPreview] = useState(user?.avatar || 'http://localhost:8090/uploads/Profiles/default-avatar.png');
+  const [preview, setPreview] = useState(user?.avatar || `${process.env.REACT_APP_API_URL}/uploads/Profiles/default-avatar.png`);
   const [photoFile, setPhotoFile] = useState(null); // Fichier sélectionné
   const [isPhotoDialogOpen, setPhotoDialogOpen] = useState(false); // Contrôle du pop-up
   const [isViewingPhoto, setIsViewingPhoto] = useState(true); // Contrôle entre "afficher" et "modifier"
@@ -96,7 +96,7 @@ export default function UserProfileView() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
   
-      const newAvatarUrl = `http://localhost:8090/uploads/Profiles/${response.data.imageName}`;
+      const newAvatarUrl = `${process.env.REACT_APP_API_URL}/uploads/Profiles/${response.data.imageName}`;
       setPreview(newAvatarUrl); // Met à jour l'aperçu localement
       updateUser({ avatar: newAvatarUrl }); // Met à jour l'avatar dans le contexte global
 
@@ -144,7 +144,7 @@ export default function UserProfileView() {
         <ProfileCover
           role={user?.role === 0 ? 'User' : 'Admin'}
           name={user?.username}
-          avatarUrl={user?.avatar || 'http://localhost:8090/uploads/Profiles/default-avatar.png'}
+          avatarUrl={user?.avatar || `${process.env.REACT_APP_API_URL}/uploads/Profiles/default-avatar.png`}
           coverUrl="assets/cover.jpg"
           onAvatarClick={() => {
             setIsViewingPhoto(true);

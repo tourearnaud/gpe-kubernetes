@@ -45,43 +45,6 @@ namespace quest_web.Controllers
         }
 
         /// <summary>
-        /// Crée une nouvelle entité Articles et l'enregistre dans la base de données.
-        /// L'accès est limité aux utilisateurs authentifiés avec JWT.
-        /// </summary>
-        /// <param name="articles">Objet Articles à ajouter, envoyé dans le corps de la requête.</param>
-        /// <returns>L'entité créée avec un statut de succès.</returns>
-        /*[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)] 
-        [Route("/articles")]
-        [HttpPost]
-        public async Task<IActionResult> RegisterUser([FromBody] Articles articles)
-        {
-            // Récupère les informations de l'utilisateur actuellement authentifié.
-            ClaimsPrincipal currentUser = this.User;
-            var currentUserID = currentUser.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            // Récupère l'utilisateur courant dans la base de données pour obtenir son identifiant.
-            var current_user = context.User.Where(u => u.Username == currentUserID).ToListAsync();
-            var UserID = current_user.Result[0].Id;
-
-            // Crée une nouvelle entité Articles basée sur les données reçues et l'identifiant utilisateur.
-            var entity = new Articles()
-            {
-                titre = articles.titre,
-                contenue = articles.contenue,
-                adresses = articles.adresses,
-                codepostal = articles.codepostal,
-                longitude = articles.longitude,
-                latitude = articles.latitude,
-                UserId = UserID
-            };                 
-
-            // Ajoute l'entité au contexte et enregistre les changements dans la base de données.
-            context.Articles.Add(entity);
-            await context.SaveChangesAsync();
-            return Ok(entity);
-        }*/
-
-        /// <summary>
         /// Met à jour une entité Articles existante dans la base de données.
         /// L'accès est restreint aux administrateurs ou aux utilisateurs propriétaires de l'entité.
         /// </summary>
@@ -134,41 +97,73 @@ namespace quest_web.Controllers
         /// </summary>
         /// <param name="Id">L'ID de l'entité Articles à supprimer.</param>
         /// <returns>Le résultat de l'opération, avec un message d'erreur si l'utilisateur n'a pas les droits ou si l'entité n'existe pas.</returns>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)] 
-        [Route("/articles/{Id}")]
-        [HttpDelete]
-        public async Task<IActionResult> DeleteUser(int Id)
+       [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[Route("/articles/{Id}")]
+[HttpDelete]
+public async Task<IActionResult> DeleteUser(int Id)
+{
+    try
+    {
+        Console.WriteLine("Début de la suppression d'article. ID de l'article : " + Id);
+
+        // Récupérer les informations de l'utilisateur actuellement authentifié
+        ClaimsPrincipal currentUser = this.User;
+        var currentUserID = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        Console.WriteLine("ID de l'utilisateur authentifié : " + currentUserID);
+
+        if (string.IsNullOrEmpty(currentUserID))
         {
-            // Récupère les informations de l'utilisateur actuellement authentifié.
-            ClaimsPrincipal currentUser = this.User;
-            var currentUserID = currentUser.FindFirst(ClaimTypes.NameIdentifier).Value;
-
-            // Récupère l'utilisateur courant et son rôle dans la base de données.
-            var current_user = context.User.Where(u => u.Username == currentUserID).ToListAsync();
-            var userId = current_user.Result[0].Id;
-            var UserRole = current_user.Result[0].Role;
-
-            // Crée une instance de l'entité Articles avec l'ID spécifié pour la suppression.
-            var entityarticles = new Articles()
-            {
-                Id = Id
-            };
-
-            // Si l'utilisateur est administrateur ou propriétaire de l'article, autorise la suppression.
-            if (UserRole == 0 || Id == userId) 
-            {            
-                // Attache l'entité au contexte et la supprime de la base de données.
-                context.Articles.Attach(entityarticles);
-                context.Articles.Remove(entityarticles);
-                await context.SaveChangesAsync();
-                return Ok(entityarticles);
-            }
-            else 
-            {
-                // Si l'utilisateur n'a pas les droits, renvoie un statut 403 avec un message d'erreur.
-                return StatusCode(403, "Vous n'avez pas les droits");
-            }
+            Console.WriteLine("Utilisateur non authentifié.");
+            return Unauthorized("Utilisateur non authentifié.");
         }
+
+        // Récupérer l'utilisateur courant dans la base de données
+        var currentUserEntity = await context.User.FirstOrDefaultAsync(u => u.Username == currentUserID);
+
+        if (currentUserEntity == null)
+        {
+            Console.WriteLine("Utilisateur non trouvé dans la base de données.");
+            return Unauthorized("Utilisateur non trouvé dans la base de données.");
+        }
+
+        Console.WriteLine("Utilisateur authentifié trouvé : " + currentUserEntity.Id);
+
+        // Récupérer l'article par ID
+        var article = await context.Articles.FindAsync(Id);
+
+        if (article == null)
+        {
+            Console.WriteLine("Article introuvable. ID : " + Id);
+            return NotFound("Article introuvable.");
+        }
+
+        Console.WriteLine("Article trouvé. Auteur de l'article (UserId) : " + article.UserId);
+
+        // Vérifier si l'utilisateur a les droits (propriétaire de l'article)
+        if (article.UserId != currentUserEntity.Id)
+        {
+            Console.WriteLine("Utilisateur non autorisé à supprimer cet article.");
+            return Forbid("Vous n'avez pas les droits pour supprimer cet article.");
+        }
+
+        // Supprimer l'article
+        context.Articles.Remove(article);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine("Article supprimé avec succès. ID : " + Id);
+
+        // Retourne une réponse Ok avec un message de succès
+        return Ok(new { message = "Article supprimé avec succès." });
+    }
+    catch (Exception ex)
+    {
+        // Gérer les exceptions et retourner un message d'erreur
+        Console.WriteLine("Erreur interne lors de la suppression de l'article : " + ex.Message);
+        return StatusCode(500, new { message = "Erreur interne.", details = ex.Message });
+    }
+}
+
 
         /// <summary>
         /// Récupère une entité Articles spécifique dans la base de données par son ID.
