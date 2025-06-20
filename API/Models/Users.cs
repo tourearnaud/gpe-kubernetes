@@ -46,6 +46,8 @@ namespace quest_web.Models
         /// <summary>
         /// Email de l'utilisateur.
         /// </summary>
+        [Column(TypeName = "varchar(255)")]
+        [MaxLength(255)]
         public string email { get; set; } = string.Empty;
 
         /// <summary>

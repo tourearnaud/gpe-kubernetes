@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpe-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpe-api
+  template:
+    metadata:
+      labels:
+        app: gpe-api
+    spec:
+      containers:
+        - name: gpe-api
+          image: gpe-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          env:
+            - name: API_URL
+              value: "http://localhost:8090"
+            - name: DB_SERVER
+              value: "mysql"          # nom du service MySQL dans k8s
+            - name: DB_DATABASE
+              value: "GPE"
+            - name: DB_USER
+              value: "toure"
+            - name: DB_PASSWORD
+              value: "root"

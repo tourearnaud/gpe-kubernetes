@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpe-front
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpe-front
+  template:
+    metadata:
+      labels:
+        app: gpe-front
+    spec:
+      containers:
+        - name: gpe-front
+          image: gpe-front:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80

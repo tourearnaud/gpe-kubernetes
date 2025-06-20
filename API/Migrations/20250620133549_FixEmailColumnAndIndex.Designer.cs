@@ -11,8 +11,8 @@ using quest_web.Models;
 namespace quest_web.Migrations
 {
     [DbContext(typeof(APIDbContext))]
-    [Migration("20241125202026_AddEmailUniqueConstraint")]
-    partial class AddEmailUniqueConstraint
+    [Migration("20250620133549_FixEmailColumnAndIndex")]
+    partial class FixEmailColumnAndIndex
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -210,7 +210,8 @@ namespace quest_web.Migrations
 
                     b.Property<string>("email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("phoneNumber")
                         .IsRequired()

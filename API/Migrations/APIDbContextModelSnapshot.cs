@@ -207,7 +207,8 @@ namespace quest_web.Migrations
 
                     b.Property<string>("email")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("phoneNumber")
                         .IsRequired()

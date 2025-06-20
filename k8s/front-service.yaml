@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpe-front-service
+spec:
+  selector:
+    app: gpe-front
+  ports:
+    - port: 80
+      targetPort: 80
