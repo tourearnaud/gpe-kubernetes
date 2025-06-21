@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conditional-rewrite
+  namespace: ingress-nginx   # adapte si ton namespace est différent
+data:
+  enable-rewrite: |
+    map $request_uri $rewrite_api {
+      default 0;
+      ~^/api/ 1;
+    }

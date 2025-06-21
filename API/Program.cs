@@ -44,7 +44,7 @@ builder.WebHost.ConfigureKestrel(options =>
 {
     if (useHttps)
     {
-        options.ListenLocalhost(httpsPort, listenOptions =>
+        options.ListenAnyIP(httpsPort, listenOptions =>
         {
             listenOptions.UseHttps(builder.Configuration["Kestrel:Endpoints:Https:Certificate:Path"],
                                    builder.Configuration["Kestrel:Endpoints:Https:Certificate:Password"]);
@@ -53,7 +53,7 @@ builder.WebHost.ConfigureKestrel(options =>
     }
     else
     {
-        options.ListenLocalhost(httpPort);
+        options.ListenAnyIP(httpPort);
         Console.WriteLine($"⚠️ HTTPS désactivé. HTTP activé sur le port {httpPort}");
     }
 });

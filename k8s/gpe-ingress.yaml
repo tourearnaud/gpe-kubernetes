@@ -3,23 +3,28 @@ kind: Ingress
 metadata:
   name: gpe-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($request_uri ~* "^/api/(.*)") {
+        rewrite ^/api/(.*) /$1 break;
+      }
 spec:
+  ingressClassName: nginx
   rules:
     - host: gpe.local
       http:
         paths:
+          - path: /api(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: gpe-api-service
+                port:
+                  number: 80
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: gpe-front-service
-                port:
-                  number: 80
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: gpe-api-service
                 port:
                   number: 80
