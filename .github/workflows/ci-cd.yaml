@@ -47,7 +47,7 @@ jobs:
       # 7. Installer dotnet-ef tool (nécessaire pour migrations EF Core)
       - name: Install dotnet-ef tool
         run: |
-          dotnet tool install --global dotnet-ef --version 7.0.0
+          dotnet tool install --global dotnet-ef --version 7.0.20
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       # 8. Build backend en mode Release
