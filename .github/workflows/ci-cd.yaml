@@ -79,6 +79,7 @@ jobs:
       # 🔟 Injecte les secrets dans appsettings.Production.json et exécute les migrations EF Core
       - name: Inject secrets into EF config and apply migrations
         env:
+          ASPNETCORE_ENVIRONMENT: Production        # ← important !
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USER: ${{ secrets.DB_USER }}

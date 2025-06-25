@@ -16,19 +16,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Charger les variables d'environnement
 Env.Load();
 
-// Récupérer les variables d'environnement
+// Récupérer l'URL de l'API uniquement (le reste, on ne récupère plus ici)
 var apiUrl = Environment.GetEnvironmentVariable("API_URL");
-var dbServer = Environment.GetEnvironmentVariable("DB_SERVER");
-var dbDatabase = Environment.GetEnvironmentVariable("DB_DATABASE");
-var dbUser = Environment.GetEnvironmentVariable("DB_USER");
-var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
 
-// Vérification des variables importantes
-if (string.IsNullOrEmpty(apiUrl) || string.IsNullOrEmpty(dbServer) || 
-    string.IsNullOrEmpty(dbDatabase) || string.IsNullOrEmpty(dbUser) || 
-    string.IsNullOrEmpty(dbPassword))
+// Vérification de la variable importante apiUrl
+if (string.IsNullOrEmpty(apiUrl))
 {
-    throw new Exception("Une ou plusieurs variables d'environnement nécessaires ne sont pas définies.");
+    throw new Exception("La variable d'environnement API_URL n'est pas définie.");
 }
 
 Console.WriteLine($"API URL: {apiUrl}");
@@ -58,10 +52,13 @@ builder.WebHost.ConfigureKestrel(options =>
     }
 });
 
-// Ajouter le service DbContext avec la configuration des variables d'environnement
+// --- MODIFICATION ICI ---
+// Au lieu de récupérer manuellement les variables d'env pour la connexion,
+// on récupère la chaîne de connexion dans la configuration (appsettings.json ou appsettings.Production.json)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<APIDbContext>(options =>
 {
-    var connectionString = $"server={dbServer};database={dbDatabase};user={dbUser};password={dbPassword}";
     options.UseMySQL(connectionString);
 });
 
