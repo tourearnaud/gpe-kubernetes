@@ -64,7 +64,7 @@ jobs:
           echo "DB_USER=$DB_USER"
           echo "DB_PASSWORD=$DB_PASSWORD"
 
-      - name: Inject secrets into EF config and apply migrations
+      - name: Inject secrets into EF config
         env:
           ASPNETCORE_ENVIRONMENT: Production
           DB_SERVER: ${{ secrets.DB_SERVER }}
@@ -77,15 +77,11 @@ jobs:
 
           cp API/appsettings.Production.json API/appsettings.Production.json.bak || echo "No original config to backup"
 
-          # Sécurisé avec printf pour échapper les caractères spéciaux
           sed -i "s#__DB_SERVER__#$(printf '%s' "$DB_SERVER" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
           sed -i "s#__DB_DATABASE__#$(printf '%s' "$DB_DATABASE" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
           sed -i "s#__DB_USER__#$(printf '%s' "$DB_USER" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
           sed -i "s#__DB_PASSWORD__#$(printf '%s' "$DB_PASSWORD" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
           sed -i "s#__API_URL__#$(printf '%s' "$API_URL" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
-
-          echo "🚀 Applying EF Core migrations..."
-          dotnet ef database update --project API
 
       - name: Login to GHCR
         uses: docker/login-action@v2
@@ -129,6 +125,18 @@ jobs:
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/front-deployment.yaml
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/front-service.yaml
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/gpe-ingress.yaml
+
+      - name: Wait for MySQL pod to be ready
+        run: |
+          echo "⏳ Waiting for MySQL to be ready..."
+          kubectl --kubeconfig=kubeconfig.yaml wait --for=condition=ready pod -l app=mysql --timeout=120s || sleep 30
+
+      - name: Apply EF Core migrations after MySQL is up
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
+        run: |
+          echo "🚀 Applying EF Core migrations now that MySQL is up"
+          dotnet ef database update --project API
 
       - name: Check Kubernetes pods status
         run: kubectl --kubeconfig=kubeconfig.yaml get pods -A
