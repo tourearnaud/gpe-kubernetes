@@ -9,7 +9,7 @@ on:
     branches:
       - main
 
-# 🔐 Charge KUBECONFIG depuis les secrets du repo (utile pour kubectl)
+# 🔐 Charge KUBECONFIG depuis les secrets du repo
 env:
   KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
@@ -18,52 +18,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Récupère le code du repo
+      # 1️⃣ Récupère le code source
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Installe Node.js pour le frontend
+      # 2️⃣ Installe Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "21.3.0"
 
-      # 3️⃣ Installe les dépendances du frontend
+      # 3️⃣ Installe les dépendances frontend
       - name: Install frontend dependencies
         run: npm install --prefix front
 
-      # 4️⃣ Lance les tests du frontend
+      # 4️⃣ Exécute les tests frontend
       - name: Run frontend tests
         run: npm test --prefix front
 
-      # 5️⃣ Installe le SDK .NET 7.0 pour builder l’API
+      # 5️⃣ Installe .NET SDK 7
       - name: Setup .NET SDK 7.0
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
 
-      # 5.1️⃣ Installe aussi le runtime .NET 6.0 (utile pour dotnet-ef parfois)
+      # 5.1️⃣ Installe .NET Runtime 6 si nécessaire
       - name: Setup .NET Runtime 6.0
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 6.0.x
 
-      # 6️⃣ Restaure les packages NuGet pour tous les projets
+      # 6️⃣ Restore des packages NuGet
       - name: Restore .NET dependencies
         run: dotnet restore gpe.sln
 
-      # 7️⃣ Installe le CLI dotnet-ef globalement
+      # 7️⃣ Installe dotnet-ef pour les migrations
       - name: Install dotnet-ef tool
         run: |
           dotnet tool install --global dotnet-ef --version 7.0.20 || echo "dotnet-ef already installed"
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-      # 8️⃣ Compile l’API en mode Release
+      # 8️⃣ Build du backend
       - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
-      # 9️⃣ ⚠️ Injecte directement les secrets d’environnement dans le run de la migration
-      # On **n’utilise pas echo >> $GITHUB_ENV**, mais on les passe en `env:` directement ici.
+      # 9️⃣ 🕵️ Debug : Affiche les valeurs des variables DB
+      - name: Debug DB environment variables
+        env:
+          DB_SERVER: ${{ secrets.DB_SERVER }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "✅ DEBUG ENV VARS"
+          echo "DB_SERVER=$DB_SERVER"
+          echo "DB_DATABASE=$DB_DATABASE"
+          echo "DB_USER=$DB_USER"
+          echo "DB_PASSWORD=$DB_PASSWORD"
+
+      # 🔟 Exécute la migration EF Core avec les variables d'env
       - name: Apply database migrations
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
@@ -72,7 +85,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: dotnet ef database update --project API
 
-      # 🔐 Connexion au registre Docker GitHub
+      # 🔐 Connexion à GHCR
       - name: Login to GHCR
         uses: docker/login-action@v2
         with:
@@ -80,33 +93,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 🐳 Build de l’image Docker backend
+      # 🐳 Build image Docker backend
       - name: Build backend Docker image
         run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-api:latest ./API
 
-      # 📤 Push de l’image backend sur le registry
+      # 📤 Push backend
       - name: Push backend Docker image
         run: docker push ghcr.io/${{ github.repository_owner }}/gpe-api:latest
 
-      # 🐳 Build de l’image Docker frontend
+      # 🐳 Build image frontend
       - name: Build frontend Docker image
         run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-front:latest ./front
 
-      # 📤 Push de l’image frontend
+      # 📤 Push frontend
       - name: Push frontend Docker image
         run: docker push ghcr.io/${{ github.repository_owner }}/gpe-front:latest
 
-      # 📦 Installe kubectl pour déploiement K8s
+      # 🛠 Installe kubectl
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: "latest"
 
-      # 🔓 Décode le secret kubeconfig depuis GitHub Secrets
+      # 🔓 Décode KUBECONFIG
       - name: Decode kubeconfig from secret
         run: echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
 
-      # 🚀 Déploie tous les manifestes Kubernetes (API, DB, Frontend, Ingress…)
+      # 🚀 Déploie les manifestes Kubernetes
       - name: Deploy to Kubernetes cluster
         run: |
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/configmap-api.yaml
@@ -123,6 +136,6 @@ jobs:
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/front-service.yaml
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/gpe-ingress.yaml
 
-      # ✅ Vérifie que tous les pods sont bien démarrés
+      # ✅ Vérifie les pods déployés
       - name: Check Kubernetes pods status
         run: kubectl --kubeconfig=kubeconfig.yaml get pods -A
