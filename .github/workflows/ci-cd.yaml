@@ -38,7 +38,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 6.0
+          dotnet-version: 7.0
 
       # 6. Restaurer les dépendances .NET
       - name: Restore .NET dependencies
@@ -47,7 +47,7 @@ jobs:
       # 7. Installer dotnet-ef tool (nécessaire pour migrations EF Core)
       - name: Install dotnet-ef tool
         run: |
-          dotnet tool install --global dotnet-ef --version 6.0.0
+          dotnet tool install --global dotnet-ef --version 7.0.0
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       # 8. Build backend en mode Release
