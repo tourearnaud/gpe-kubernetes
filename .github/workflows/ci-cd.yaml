@@ -34,11 +34,17 @@ jobs:
       - name: Run frontend tests
         run: npm test --prefix front
 
-      # 5. Setup .NET SDK (backend)
-      - name: Setup .NET SDK
+      # 5. Setup .NET SDK 7.0 (backend)
+      - name: Setup .NET SDK 7.0
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 7.0
+          dotnet-version: 7.0.x
+
+      # 5.1 Setup .NET Runtime 6.0 (pour dotnet-ef si besoin)
+      - name: Setup .NET Runtime 6.0
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 6.0.x
 
       # 6. Restaurer les dépendances .NET
       - name: Restore .NET dependencies
