@@ -53,7 +53,7 @@ jobs:
       # 7. Installer dotnet-ef tool (nécessaire pour migrations EF Core)
       - name: Install dotnet-ef tool
         run: |
-          dotnet tool install --global dotnet-ef --version 7.0.20
+          dotnet tool install --global dotnet-ef --version 7.0.20 || echo "dotnet-ef already installed"
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       # 8. Build backend en mode Release
@@ -62,11 +62,16 @@ jobs:
 
       # 9. Définir les variables d'environnement pour la base de données (à adapter si besoin)
       - name: Set DB environment variables for EF migrations
+        env:
+          DB_SERVER: ${{ secrets.DB_SERVER }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          echo "DB_SERVER=127.0.0.1" >> $GITHUB_ENV
-          echo "DB_DATABASE=GPE" >> $GITHUB_ENV
-          echo "DB_USER=toure" >> $GITHUB_ENV
-          echo "DB_PASSWORD=root" >> $GITHUB_ENV
+          echo "DB_SERVER=$DB_SERVER" >> $GITHUB_ENV
+          echo "DB_DATABASE=$DB_DATABASE" >> $GITHUB_ENV
+          echo "DB_USER=$DB_USER" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
 
       # 10. Appliquer les migrations de la base de données (EF Core)
       - name: Apply database migrations
