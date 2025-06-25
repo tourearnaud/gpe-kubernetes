@@ -54,7 +54,7 @@ jobs:
 
       # 9. Lancer les tests backend
       - name: Run backend tests
-        run: dotnet test API.Tests --no-build --configuration Release
+        run: dotnet test APII.Tests --no-build --configuration Release
 
       # 10. Connexion au registre GHCR
       - name: Login to GHCR
