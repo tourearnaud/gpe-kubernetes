@@ -95,6 +95,7 @@ jobs:
           sed -i "s/__DB_DATABASE__/$DB_DATABASE/g" API/appsettings.Production.json
           sed -i "s/__DB_USER__/$DB_USER/g" API/appsettings.Production.json
           sed -i "s/__DB_PASSWORD__/$DB_PASSWORD/g" API/appsettings.Production.json
+          sed -i "s/__API_URL__/$API_URL/g" API/appsettings.Production.json
 
           echo "🚀 Applying EF Core migrations..."
           dotnet ef database update --project API
