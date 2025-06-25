@@ -17,15 +17,11 @@ var builder = WebApplication.CreateBuilder(args);
 Env.Load();
 
 // Récupérer l'URL de l'API uniquement (le reste, on ne récupère plus ici)
-var apiUrl = Environment.GetEnvironmentVariable("API_URL");
-
-// Vérification de la variable importante apiUrl
+var apiUrl = builder.Configuration["API_URL"];
 if (string.IsNullOrEmpty(apiUrl))
 {
-    throw new Exception("La variable d'environnement API_URL n'est pas définie.");
+    throw new Exception("La variable API_URL est manquante dans la configuration.");
 }
-
-Console.WriteLine($"API URL: {apiUrl}");
 
 // Lire la configuration pour activer ou désactiver HTTPS
 var httpsSettings = builder.Configuration.GetSection("HttpsSettings");

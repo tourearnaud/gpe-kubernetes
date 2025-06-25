@@ -84,6 +84,7 @@ jobs:
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          API_URL: ${{ secrets.API_URL }} 
         run: |
           echo "🔧 Replacing secrets in appsettings.Production.json"
 
