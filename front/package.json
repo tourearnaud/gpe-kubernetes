@@ -15,7 +15,8 @@
     "rm:all": "rm -rf node_modules .next out dist build",
     "re:start": "yarn rm:all && yarn install && yarn dev",
     "re:build": "yarn rm:all && yarn install && yarn build",
-    "re:build-npm": "npm run rm:all && npm install && npm run build"
+    "re:build-npm": "npm run rm:all && npm install && npm run build",
+    "test": "echo \"Aucun test défini pour le moment.\" && exit 0"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.2.3",
