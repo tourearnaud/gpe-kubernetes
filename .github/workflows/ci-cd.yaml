@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '21.3.0'
+          node-version: "21.3.0"
 
       # 3. Installer les dépendances frontend
       - name: Install frontend dependencies
@@ -44,18 +44,19 @@ jobs:
       - name: Restore .NET dependencies
         run: dotnet restore gpe.sln
 
-      # 7. Build backend en mode Release
+      # 7. Installer dotnet-ef tool (nécessaire pour migrations EF Core)
+      - name: Install dotnet-ef tool
+        run: |
+          dotnet tool install --global dotnet-ef --version 7.0.0
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      # 8. Build backend en mode Release
       - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
-      # 8. Appliquer les migrations de la base de données (EF Core)
+      # 9. Appliquer les migrations de la base de données (EF Core)
       - name: Apply database migrations
         run: dotnet ef database update --project API
-
-      # 9. Lancer les tests backend
-      #- name: Run backend tests
-      # run: dotnet test API.Tests --no-build --configuration Release
-        
 
       # 10. Connexion au registre GHCR
       - name: Login to GHCR
@@ -85,12 +86,11 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'latest'
+          version: "latest"
 
       # 16. Recréer le fichier kubeconfig à partir du secret GitHub
       - name: Decode kubeconfig from secret
-        run: |
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
+        run: echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
 
       # 17. Déployer les manifests Kubernetes
       - name: Deploy to Kubernetes cluster
