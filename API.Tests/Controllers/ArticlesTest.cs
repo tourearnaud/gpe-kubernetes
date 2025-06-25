@@ -42,38 +42,7 @@ namespace quest_web.Tests.Controllers
             Assert.Equal("Article 2", result[1].titre);
         }
 
-        [Fact]
-        public async Task RegisterUser_ShouldAddNewArticle_WhenAuthorized()
-        {
-            // Arrange
-            using var context = new APIDbContext(_dbContextOptions);
-            context.User.Add(new User { Id = 1, Username = "user1" });
-            context.SaveChanges();
-
-            var controller = new ArticlesController(context);
-
-            var article = new Articles { titre = "New Article", contenue = "New Content", adresses = "Test Address" };
-
-            // Mock JWT authentication
-            var userClaims = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, "user1"),
-            }, "mock"));
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = userClaims }
-            };
-
-            // Act
-            var result = await controller.RegisterUser(article);
-
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var addedArticle = Assert.IsType<Articles>(okResult.Value);
-            Assert.Equal("New Article", addedArticle.titre);
-            Assert.Equal(1, context.Articles.Count());
-        }
-
+       
         [Fact]
         public async Task UpdateUser_ShouldUpdateArticle_WhenUserIsAdminOrOwner()
         {

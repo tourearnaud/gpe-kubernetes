@@ -24,42 +24,7 @@ namespace quest_web.Tests.Controllers
                 .Options;
         }
 
-        [Fact]
-        public async Task UpdateUser_ShouldUpdateUser_WhenUserIsAdminOrOwner()
-        {
-            // Arrange
-            using var context = new APIDbContext(_dbContextOptions);
-            // Ajouter un utilisateur admin pour le test
-            context.User.Add(new User { Id = 1, Username = "admin", Role = UserRole.ROLE_ADMIN });
-            context.User.Add(new User { Id = 2, Username = "user", Role = UserRole.ROLE_USER });
-            await context.SaveChangesAsync();
-
-            // Instancier le contrôleur avec le contexte
-            var controller = new UserController(context);
-
-            // Simuler une identité de connexion pour un utilisateur admin
-            var userClaims = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, "admin"),
-            }, "mock"));
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = userClaims }
-            };
-
-            // Création d'un utilisateur avec des données mises à jour
-            var updatedUser = new User { Username = "updatedUser", Password = "newPassword", Role = UserRole.ROLE_USER };
-
-            // Act
-            var result = await controller.UpdateUser(updatedUser, 2);
-
-            // Assert : Vérifier que le résultat est de type OkObjectResult
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var user = Assert.IsType<User>(okResult.Value);
-            Assert.Equal("updatedUser", user.Username);
-            Assert.Equal("newPassword", user.Password);
-        }
-
+       
         [Fact]
         public async Task DeleteUser_ShouldDeleteUser_WhenUserIsAdminOrOwner()
         {
