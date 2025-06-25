@@ -42,7 +42,7 @@ jobs:
 
       # 6. Restaurer les dépendances .NET
       - name: Restore .NET dependencies
-        run: dotnet restore GPE.sln
+        run: dotnet restore gpe.sln
 
       # 7. Build backend en mode Release
       - name: Build backend
