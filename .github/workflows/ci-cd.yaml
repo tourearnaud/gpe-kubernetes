@@ -1,6 +1,5 @@
 name: CI/CD Pipeline - Build, Test, Push & Deploy
 
-# ▶️ Déclenche le pipeline à chaque push ou PR sur la branche main
 on:
   push:
     branches:
@@ -9,7 +8,6 @@ on:
     branches:
       - main
 
-# 🔐 Charge KUBECONFIG depuis les secrets du repo
 env:
   KUBECONFIG: ${{ secrets.KUBECONFIG }}
 
@@ -18,51 +16,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Récupère le code source
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Installe Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "21.3.0"
 
-      # 3️⃣ Installe les dépendances frontend
       - name: Install frontend dependencies
         run: npm install --prefix front
 
-      # 4️⃣ Exécute les tests frontend
       - name: Run frontend tests
         run: npm test --prefix front
 
-      # 5️⃣ Installe .NET SDK 7
       - name: Setup .NET SDK 7.0
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0.x
 
-      # 5.1️⃣ Installe .NET Runtime 6 si nécessaire
       - name: Setup .NET Runtime 6.0
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 6.0.x
 
-      # 6️⃣ Restore des packages NuGet
       - name: Restore .NET dependencies
         run: dotnet restore gpe.sln
 
-      # 7️⃣ Installe dotnet-ef pour les migrations
       - name: Install dotnet-ef tool
         run: |
           dotnet tool install --global dotnet-ef --version 7.0.20 || echo "dotnet-ef already installed"
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-      # 8️⃣ Build du backend
       - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
-      # 9️⃣ 🕵️ Debug : Affiche les valeurs des variables DB (pour vérifier)
       - name: Debug DB environment variables
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
@@ -76,32 +64,29 @@ jobs:
           echo "DB_USER=$DB_USER"
           echo "DB_PASSWORD=$DB_PASSWORD"
 
-      # 🔟 Injecte les secrets dans appsettings.Production.json et exécute les migrations EF Core
       - name: Inject secrets into EF config and apply migrations
         env:
-          ASPNETCORE_ENVIRONMENT: Production        # ← important !
+          ASPNETCORE_ENVIRONMENT: Production
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          API_URL: ${{ secrets.API_URL }} 
+          API_URL: ${{ secrets.API_URL }}
         run: |
           echo "🔧 Replacing secrets in appsettings.Production.json"
 
-          # Copier le fichier original pour sauvegarde (si besoin)
           cp API/appsettings.Production.json API/appsettings.Production.json.bak || echo "No original config to backup"
 
-          # Remplacer les placeholders dans le fichier JSON
-          sed -i "s/__DB_SERVER__/$DB_SERVER/g" API/appsettings.Production.json
-          sed -i "s/__DB_DATABASE__/$DB_DATABASE/g" API/appsettings.Production.json
-          sed -i "s/__DB_USER__/$DB_USER/g" API/appsettings.Production.json
-          sed -i "s/__DB_PASSWORD__/$DB_PASSWORD/g" API/appsettings.Production.json
-          sed -i "s/__API_URL__/$API_URL/g" API/appsettings.Production.json
+          # Sécurisé avec printf pour échapper les caractères spéciaux
+          sed -i "s#__DB_SERVER__#$(printf '%s' "$DB_SERVER" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
+          sed -i "s#__DB_DATABASE__#$(printf '%s' "$DB_DATABASE" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
+          sed -i "s#__DB_USER__#$(printf '%s' "$DB_USER" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
+          sed -i "s#__DB_PASSWORD__#$(printf '%s' "$DB_PASSWORD" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
+          sed -i "s#__API_URL__#$(printf '%s' "$API_URL" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
 
           echo "🚀 Applying EF Core migrations..."
           dotnet ef database update --project API
 
-      # 🔐 Connexion à GHCR (GitHub Container Registry)
       - name: Login to GHCR
         uses: docker/login-action@v2
         with:
@@ -109,33 +94,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 🐳 Build image Docker backend
       - name: Build backend Docker image
         run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-api:latest ./API
 
-      # 📤 Push backend
       - name: Push backend Docker image
         run: docker push ghcr.io/${{ github.repository_owner }}/gpe-api:latest
 
-      # 🐳 Build image frontend
       - name: Build frontend Docker image
         run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-front:latest ./front
 
-      # 📤 Push frontend
       - name: Push frontend Docker image
         run: docker push ghcr.io/${{ github.repository_owner }}/gpe-front:latest
 
-      # 🛠 Installe kubectl
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: "latest"
 
-      # 🔓 Décode KUBECONFIG depuis le secret
       - name: Decode kubeconfig from secret
         run: echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
 
-      # 🚀 Déploie les manifestes Kubernetes
       - name: Deploy to Kubernetes cluster
         run: |
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/configmap-api.yaml
@@ -152,6 +130,5 @@ jobs:
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/front-service.yaml
           kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/gpe-ingress.yaml
 
-      # ✅ Vérifie les pods déployés
       - name: Check Kubernetes pods status
         run: kubectl --kubeconfig=kubeconfig.yaml get pods -A
