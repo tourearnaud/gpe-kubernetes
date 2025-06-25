@@ -62,7 +62,7 @@ jobs:
       - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
-      # 9️⃣ 🕵️ Debug : Affiche les valeurs des variables DB
+      # 9️⃣ 🕵️ Debug : Affiche les valeurs des variables DB (pour vérifier)
       - name: Debug DB environment variables
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
@@ -76,16 +76,29 @@ jobs:
           echo "DB_USER=$DB_USER"
           echo "DB_PASSWORD=$DB_PASSWORD"
 
-      # 🔟 Exécute la migration EF Core avec les variables d'env
-      - name: Apply database migrations
+      # 🔟 Injecte les secrets dans appsettings.Production.json et exécute les migrations EF Core
+      - name: Inject secrets into EF config and apply migrations
         env:
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: dotnet ef database update --project API
+        run: |
+          echo "🔧 Replacing secrets in appsettings.Production.json"
 
-      # 🔐 Connexion à GHCR
+          # Copier le fichier original pour sauvegarde (si besoin)
+          cp API/appsettings.Production.json API/appsettings.Production.json.bak || echo "No original config to backup"
+
+          # Remplacer les placeholders dans le fichier JSON
+          sed -i "s/__DB_SERVER__/$DB_SERVER/g" API/appsettings.Production.json
+          sed -i "s/__DB_DATABASE__/$DB_DATABASE/g" API/appsettings.Production.json
+          sed -i "s/__DB_USER__/$DB_USER/g" API/appsettings.Production.json
+          sed -i "s/__DB_PASSWORD__/$DB_PASSWORD/g" API/appsettings.Production.json
+
+          echo "🚀 Applying EF Core migrations..."
+          dotnet ef database update --project API
+
+      # 🔐 Connexion à GHCR (GitHub Container Registry)
       - name: Login to GHCR
         uses: docker/login-action@v2
         with:
@@ -115,7 +128,7 @@ jobs:
         with:
           version: "latest"
 
-      # 🔓 Décode KUBECONFIG
+      # 🔓 Décode KUBECONFIG depuis le secret
       - name: Decode kubeconfig from secret
         run: echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
 
