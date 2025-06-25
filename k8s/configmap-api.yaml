@@ -1,0 +1,11 @@
+# configmap-api.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpe-api-config
+data:
+  API_URL: "http://gpe-api-service:80"
+  DB_SERVER: "mysql"
+  DB_DATABASE: "GPE"
+  DB_USER: "toure"
+  ASPNETCORE_URLS: "http://0.0.0.0:8090"

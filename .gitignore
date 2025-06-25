@@ -48,3 +48,4 @@ API/Properties/launchSettings.json
 **/bin/
 **/obj/
 **/out/
+#secret-api.yaml

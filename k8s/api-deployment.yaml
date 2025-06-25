@@ -18,16 +18,8 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 8090
-          env:
-            - name: API_URL
-              value: "http://gpe-api-service:80"
-            - name: DB_SERVER
-              value: "mysql"          # nom du service MySQL dans k8s
-            - name: DB_DATABASE
-              value: "GPE"
-            - name: DB_USER
-              value: "toure"
-            - name: DB_PASSWORD
-              value: "root"
-            - name: ASPNETCORE_URLS
-              value: "http://0.0.0.0:8090"
+          envFrom:
+            - configMapRef:
+                name: gpe-api-config
+            - secretRef:
+                name: gpe-api-secret

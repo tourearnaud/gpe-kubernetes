@@ -1,0 +1,113 @@
+name: CI/CD Pipeline - Build, Test, Push & Deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+jobs:
+  build-test-push-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout le code source
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js (frontend)
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '21.3.0'
+
+      # 3. Installer les dépendances frontend
+      - name: Install frontend dependencies
+        run: npm install --prefix front
+
+      # 4. Lancer les tests frontend
+      - name: Run frontend tests
+        run: npm test --prefix front
+
+      # 5. Setup .NET SDK (backend)
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0
+
+      # 6. Restaurer les dépendances .NET
+      - name: Restore .NET dependencies
+        run: dotnet restore GPE.sln
+
+      # 7. Build backend en mode Release
+      - name: Build backend
+        run: dotnet build --no-restore --configuration Release
+
+      # 8. Appliquer les migrations de la base de données (EF Core)
+      - name: Apply database migrations
+        run: dotnet ef database update --project API
+
+      # 9. Lancer les tests backend
+      - name: Run backend tests
+        run: dotnet test API.Tests --no-build --configuration Release
+
+      # 10. Connexion au registre GHCR
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 11. Build l'image Docker backend
+      - name: Build backend Docker image
+        run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-api:latest ./API
+
+      # 12. Push l'image backend sur GHCR
+      - name: Push backend Docker image
+        run: docker push ghcr.io/${{ github.repository_owner }}/gpe-api:latest
+
+      # 13. Build l'image Docker frontend
+      - name: Build frontend Docker image
+        run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-front:latest ./front
+
+      # 14. Push l'image frontend sur GHCR
+      - name: Push frontend Docker image
+        run: docker push ghcr.io/${{ github.repository_owner }}/gpe-front:latest
+
+      # 15. Installer kubectl
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # 16. Recréer le fichier kubeconfig à partir du secret GitHub
+      - name: Decode kubeconfig from secret
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig.yaml
+
+      # 17. Déployer les manifests Kubernetes
+      - name: Deploy to Kubernetes cluster
+        run: |
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/configmap-api.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/secret-api.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/mysql-pv.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/mysql-pvc.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/mysql-deployment.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/mysql-service.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/ngnix-conditional-rewrite.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/gpe-api-nodeport.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/api-deployment.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/api-service.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/front-deployment.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/front-service.yaml
+          kubectl --kubeconfig=kubeconfig.yaml apply -f k8s/gpe-ingress.yaml
+
+      # 18. Vérifier les pods déployés
+      - name: Check Kubernetes pods status
+        run: kubectl --kubeconfig=kubeconfig.yaml get pods -A
