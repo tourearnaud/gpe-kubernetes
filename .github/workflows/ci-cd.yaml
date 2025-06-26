@@ -74,7 +74,6 @@ jobs:
           API_URL: ${{ secrets.API_URL }}
         run: |
           echo "🔧 Replacing secrets in appsettings.Production.json"
-
           cp API/appsettings.Production.json API/appsettings.Production.json.bak || echo "No original config to backup"
 
           sed -i "s#__DB_SERVER__#$(printf '%s' "$DB_SERVER" | sed 's/[\/&]/\\&/g')#g" API/appsettings.Production.json
@@ -88,7 +87,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.PAT_GHCR }}
 
       - name: Build backend Docker image
         run: docker build -t ghcr.io/${{ github.repository_owner }}/gpe-api:latest ./API
@@ -128,7 +127,7 @@ jobs:
 
       - name: Wait for MySQL pod to be ready
         run: |
-          echo "⏳ Waiting for MySQL to be ready..."
+          echo "⏳ Waiting for MySQL pod to be ready..."
           kubectl --kubeconfig=kubeconfig.yaml wait --for=condition=ready pod -l app=mysql --timeout=120s || sleep 30
 
       - name: Apply EF Core migrations after MySQL is up
